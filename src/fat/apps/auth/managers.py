@@ -1,11 +1,13 @@
 from fastapi import Depends, HTTPException
 from sqlalchemy import insert, update
 from sqlalchemy.exc import IntegrityError
+from starlette import status
 
 from fat.apps.auth.schemas import CreateUserSchema, UserReturnDataSchema
 from fat.core.db_dependency import DBDependency
 from fat.database.models import User
 
+USER_EXISTS = "User already exists."
 
 class UserManager:
     def __init__(self, db: DBDependency = Depends(DBDependency)) -> None:
@@ -26,7 +28,8 @@ class UserManager:
                 result = await session.execute(query)
             except IntegrityError:
                 raise HTTPException(
-                    status_code=400, detail="User already exists.")
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=USER_EXISTS)
             await session.commit()
             user_data = result.scalar_one()
             return UserReturnDataSchema(**user_data.__dict__)

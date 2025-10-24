@@ -1,6 +1,12 @@
+"""
+URLSafeTimedSerializer - создает временный токен с
+сериализованными данными.
+"""
+
 from fastapi import Depends
 from fastapi import HTTPException
 from itsdangerous import BadSignature, URLSafeTimedSerializer
+from starlette import status
 
 from fat.apps.auth.handlers import AuthHandler
 from fat.apps.auth.managers import UserManager
@@ -9,6 +15,7 @@ from fat.apps.auth.schemas import (
 from fat.apps.auth.tasks import send_confirmation_email
 from fat.core.settings import settings
 
+BAD_TOKEN = "Неверный или просроченный токен"
 
 class UserService:
     def __init__(
@@ -41,7 +48,8 @@ class UserService:
             email = self.serializer.loads(token, max_age=3600)
         except BadSignature:
             raise HTTPException(
-                status_code=400, detail="Неверный или просроченный токен"
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=BAD_TOKEN
             )
 
         await self.manager.confirm_user(email=email)

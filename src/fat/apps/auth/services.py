@@ -7,15 +7,17 @@ from fastapi import Depends
 from fastapi import HTTPException
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from starlette import status
+from starlette.responses import JSONResponse
 
 from fat.apps.auth.handlers import AuthHandler
 from fat.apps.auth.managers import UserManager
 from fat.apps.auth.schemas import (
-    RegisterUserSchema, UserReturnDataSchema, CreateUserSchema)
+    AuthUserSchema, UserReturnDataSchema, CreateUserSchema)
 from fat.apps.auth.tasks import send_confirmation_email
 from fat.core.settings import settings
 
-BAD_TOKEN = "Неверный или просроченный токен"
+BAD_TOKEN = "Неверный или просроченный токен!"
+
 
 class UserService:
     def __init__(
@@ -29,7 +31,7 @@ class UserService:
             secret_key=settings.secret_key.get_secret_value())
 
     async def register_user(
-            self, user: RegisterUserSchema) -> UserReturnDataSchema:
+            self, user: AuthUserSchema) -> UserReturnDataSchema:
         hashed_password = await self.handler.get_password_hash(user.password)
 
         new_user = CreateUserSchema(
@@ -38,6 +40,7 @@ class UserService:
         user_data = await self.manager.create_user(user=new_user)
 
         confirmation_token = self.serializer.dumps(user_data.email)
+        print(confirmation_token)
         send_confirmation_email.delay(
             to_email=user_data.email, token=confirmation_token)
 
@@ -48,8 +51,39 @@ class UserService:
             email = self.serializer.loads(token, max_age=3600)
         except BadSignature:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=BAD_TOKEN
             )
 
         await self.manager.confirm_user(email=email)
+
+    async def login_user(self, user: AuthUserSchema) -> JSONResponse:
+        exist_user = await self.manager.get_user_by_email(email=user.email)
+
+        if exist_user is None or not await self.handler.verify_password(
+            hashed_password=exist_user.hashed_password,
+            raw_password=user.password
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Wrong email or password"
+            )
+
+        token, session_id = await self.handler.create_access_token(
+            user_id=exist_user.id)
+
+        await self.manager.store_access_token(
+            token=token,
+            user_id=exist_user.id,
+            session_id=session_id
+        )
+
+        response = JSONResponse(content={"message": "Вход успешен"})
+        response.set_cookie(
+            key="Authorization",
+            value=token,
+            httponly=True,
+            max_age=settings.access_token_expire,
+        )
+
+        return response

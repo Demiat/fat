@@ -1,0 +1,71 @@
+volumes:
+  fat_db_data:
+  fat_redis_data:
+
+services:
+
+  redis:
+    image: redis:alpine
+    container_name: fat-redis
+    volumes:
+      - fat_redis_data:/data
+    ports:
+      - 127.0.0.1:6379:6379
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 10s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: fat-db
+    volumes:
+      - fat_db_data:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5432:5432
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    user: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=$${DB_PASSWORD} pg_isready -U $${DB_USER} -d $${DB_NAME}"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 10s
+
+  backend:
+    container_name: fat-backend
+    build: .
+    ports:
+      - 127.0.0.1:8000:8000
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "1"
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 10s
+
+  celery:
+    build: .
+    command: poetry run celery -A fat.core.celery_app worker -l INFO
+    container_name: fat-celery
+    env_file: .env
+    depends_on:
+      - redis
+      - postgres
+      - backend
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 10s

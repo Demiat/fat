@@ -13,7 +13,7 @@ class GetUserByEmailSchema(BaseModel):
     email: EmailStr
 
 
-class RegisterUserSchema(GetUserByEmailSchema):
+class AuthUserSchema(GetUserByEmailSchema):
     password: Annotated[str, StringConstraints(min_length=8, max_length=128)]
 
 
@@ -27,3 +27,7 @@ class UserReturnDataSchema(GetUserByIDSchema, GetUserByEmailSchema):
     is_superuser: bool
     created_at: datetime.datetime
     updated_at: datetime.datetime
+
+
+class GetUserWithIDAndEmailSchema(GetUserByIDSchema, CreateUserSchema):
+    pass

@@ -1,3 +1,4 @@
+.ruff_cache
 sent_emails/
 smedia
 /core/migrations/

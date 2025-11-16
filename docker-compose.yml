@@ -11,10 +11,6 @@ services:
       - fat_redis_data:/data
     ports:
       - 127.0.0.1:6379:6379
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 10s
 
   postgres:
     image: postgres:15-alpine
@@ -32,14 +28,15 @@ services:
       interval: 1s
       timeout: 5s
       retries: 10
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 10s
 
   backend:
     container_name: fat-backend
     build: .
+    command: >
+      sh -c "
+      alembic upgrade head &&
+      poetry run uvicorn src.fat.main:app --host 0.0.0.0 --port 8000
+      "
     ports:
       - 127.0.0.1:8000:8000
     env_file: .env
@@ -51,10 +48,6 @@ services:
       options:
         max-size: "50m"
         max-file: "1"
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 10s
 
   celery:
     build: .
@@ -65,7 +58,3 @@ services:
       - redis
       - postgres
       - backend
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 10s

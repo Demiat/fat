@@ -12,7 +12,7 @@ from starlette.responses import JSONResponse
 from fat.apps.auth.handlers import AuthHandler
 from fat.apps.auth.managers import UserManager
 from fat.apps.auth.schemas import (
-    AuthUserSchema, UserReturnDataSchema, CreateUserSchema)
+    AuthUserSchema, UserReturnDataSchema, CreateUserSchema, UserVerifySchema)
 from fat.apps.auth.tasks import send_confirmation_email
 from fat.core.settings import settings
 
@@ -32,6 +32,7 @@ class UserService:
 
     async def register_user(
             self, user: AuthUserSchema) -> UserReturnDataSchema:
+        """Создает пользователя и высылает подтверждающий токен."""
         hashed_password = await self.handler.get_password_hash(user.password)
 
         new_user = CreateUserSchema(
@@ -40,13 +41,13 @@ class UserService:
         user_data = await self.manager.create_user(user=new_user)
 
         confirmation_token = self.serializer.dumps(user_data.email)
-        print(confirmation_token)
         send_confirmation_email.delay(
             to_email=user_data.email, token=confirmation_token)
 
         return user_data
 
     async def confirm_user(self, token: str) -> None:
+        """Подтверждает пользователя из токена подтверждения."""
         try:
             email = self.serializer.loads(token, max_age=3600)
         except BadSignature:
@@ -58,6 +59,7 @@ class UserService:
         await self.manager.confirm_user(email=email)
 
     async def login_user(self, user: AuthUserSchema) -> JSONResponse:
+        """Создает access токен и помещает его в cookie."""
         exist_user = await self.manager.get_user_by_email(email=user.email)
 
         if exist_user is None or not await self.handler.verify_password(
@@ -85,5 +87,16 @@ class UserService:
             httponly=True,
             max_age=settings.access_token_expire,
         )
+
+        return response
+
+    async def logout_user(self, user: UserVerifySchema) -> JSONResponse:
+        """Отзывает access токен."""
+        await self.manager.revoke_access_token(
+            user_id=user.id, session_id=user.session_id
+        )
+
+        response = JSONResponse(content={"message": "Logged out"})
+        response.delete_cookie(key="Authorization")
 
         return response

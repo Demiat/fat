@@ -6,7 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from starlette import status
 
 from fat.apps.auth.schemas import (
-    CreateUserSchema, UserReturnDataSchema, GetUserWithIDAndEmailSchema
+    CreateUserSchema, UserReturnDataSchema,
+    GetUserWithIDAndEmailSchema, UserVerifySchema,
 )
 from fat.core.db_dependency import DBDependency
 from fat.core.redis_dependency import RedisDependency
@@ -27,6 +28,7 @@ class UserManager:
 
     async def create_user(
             self, user: CreateUserSchema) -> UserReturnDataSchema:
+        """Создает пользователя."""
         async with self.db.db_session() as session:
             query = insert(
                 self.model
@@ -47,6 +49,7 @@ class UserManager:
 
     async def confirm_user(self, email: str) -> None:
         async with self.db.db_session() as session:
+            """Обновляет модель пользователя, когда он подтвержден."""
             query = (
                 update(self.model)
                 .where(self.model.email == email)
@@ -58,6 +61,7 @@ class UserManager:
     async def get_user_by_email(
             self, email: str
     ) -> GetUserWithIDAndEmailSchema | None:
+        """Получает пользователя по email."""
         async with self.db.db_session() as session:
             query = select(
                 self.model.id,
@@ -75,8 +79,39 @@ class UserManager:
 
             return None
 
+    async def get_user_by_id(
+            self, user_id: uuid.UUID | str) -> UserVerifySchema | None:
+        """Получает пользователя по id."""
+        async with self.db.db_session() as session:
+            query = select(self.model.id, self.model.email).where(
+                self.model.id == user_id)
+
+            result = await session.execute(query)
+            user = result.mappings().one_or_none()
+
+            if user:
+                return UserVerifySchema(**user)
+
+            return None
+
     async def store_access_token(
             self, token: str, user_id: uuid.UUID, session_id: str
     ) -> None:
+        """Помещает токен в Redis."""
         async with self.redis.get_client() as client:
             await client.set(f"{user_id}:{session_id}", token)
+
+    async def get_access_token(
+            self, user_id: uuid.UUID | str, session_id: str) -> str | None:
+        """
+        Проверяет в Redis, действительно ли сессия пользователя
+        существует и активна.
+        """
+        async with self.redis.get_client() as client:
+            return await client.get(f"{user_id}:{session_id}")
+
+    async def revoke_access_token(
+            self, user_id: uuid.UUID | str, session_id: str) -> None:
+        """Отзывает access токен из Redis."""
+        async with self.redis.get_client() as client:
+            await client.delete(f"{user_id}:{session_id}")

@@ -31,3 +31,11 @@ class UserReturnDataSchema(GetUserByIDSchema, GetUserByEmailSchema):
 
 class GetUserWithIDAndEmailSchema(GetUserByIDSchema, CreateUserSchema):
     pass
+
+
+class UserVerifySchema(GetUserByIDSchema, GetUserByEmailSchema):
+    session_id: uuid.UUID | str | None = None
+
+
+class MessageResponseSchema(BaseModel):
+    message: str

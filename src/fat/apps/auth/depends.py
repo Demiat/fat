@@ -15,6 +15,7 @@ async def get_current_user(
     handler: AuthHandler = Depends(AuthHandler),
     manager: UserManager = Depends(UserManager),
 ) -> UserVerifySchema:
+    """Получает текущего пользователя из токена аутентификации."""
     decoded_token = await handler.decode_access_token(token=token)
     user_id = decoded_token.get("user_id")
     session_id = decoded_token.get("session_id")

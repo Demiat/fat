@@ -41,6 +41,7 @@ class UserService:
         user_data = await self.manager.create_user(user=new_user)
 
         confirmation_token = self.serializer.dumps(user_data.email)
+        print(confirmation_token)
         send_confirmation_email.delay(
             to_email=user_data.email, token=confirmation_token)
 
@@ -71,9 +72,11 @@ class UserService:
                 detail="Wrong email or password"
             )
 
+        # Создаем access токен
         token, session_id = await self.handler.create_access_token(
             user_id=exist_user.id)
 
+        # Сохраняем access токен в Redis
         await self.manager.store_access_token(
             token=token,
             user_id=exist_user.id,

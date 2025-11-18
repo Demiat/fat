@@ -97,7 +97,7 @@ class UserManager:
     async def store_access_token(
             self, token: str, user_id: uuid.UUID, session_id: str
     ) -> None:
-        """Помещает токен в Redis."""
+        """Помещает access токен в Redis."""
         async with self.redis.get_client() as client:
             await client.set(f"{user_id}:{session_id}", token)
 

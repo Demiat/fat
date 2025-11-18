@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     email_settings: EmailSettings = EmailSettings()
     redis_settings: RedisSettings = RedisSettings()
     secret_key: SecretStr
-    templates_dir: str = "templates"
+    templates_dir: str = "src/fat/templates"
     frontend_url: str
     access_token_expire: int
 

@@ -6,15 +6,15 @@ from starlette import status
 
 from fat.apps.auth.handlers import AuthHandler
 from fat.apps.auth.managers import UserManager
-from fat.apps.auth.schemas import UserVerifySchema
 from fat.apps.auth.utils import get_token_from_cookies
+from fat.database.models import User
 
 
 async def get_current_user(
     token: Annotated[str, Depends(get_token_from_cookies)],
     handler: AuthHandler = Depends(AuthHandler),
     manager: UserManager = Depends(UserManager),
-) -> UserVerifySchema:
+) -> User:
     """Получает текущего пользователя из токена аутентификации."""
     decoded_token = await handler.decode_access_token(token=token)
     user_id = decoded_token.get("user_id")

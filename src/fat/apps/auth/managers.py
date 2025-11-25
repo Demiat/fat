@@ -7,7 +7,7 @@ from starlette import status
 
 from fat.apps.auth.schemas import (
     CreateUserSchema, UserReturnDataSchema,
-    GetUserWithIDAndEmailSchema, UserVerifySchema,
+    GetUserWithIDAndEmailSchema
 )
 from fat.core.db_dependency import DBDependency
 from fat.core.redis_dependency import RedisDependency
@@ -80,19 +80,15 @@ class UserManager:
             return None
 
     async def get_user_by_id(
-            self, user_id: uuid.UUID | str) -> UserVerifySchema | None:
+            self, user_id: uuid.UUID | str) -> User | None:
         """Получает пользователя по id."""
         async with self.db.db_session() as session:
-            query = select(self.model.id, self.model.email).where(
+            query = select(self.model).where(
                 self.model.id == user_id)
 
             result = await session.execute(query)
-            user = result.mappings().one_or_none()
 
-            if user:
-                return UserVerifySchema(**user)
-
-            return None
+            return result.scalars().one_or_none()
 
     async def store_access_token(
             self, token: str, user_id: uuid.UUID, session_id: str

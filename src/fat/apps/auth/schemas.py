@@ -33,9 +33,24 @@ class GetUserWithIDAndEmailSchema(GetUserByIDSchema, CreateUserSchema):
     pass
 
 
-class UserVerifySchema(GetUserByIDSchema, GetUserByEmailSchema):
+# class UserVerifySchema(GetUserByIDSchema, GetUserByEmailSchema):
+#     session_id: uuid.UUID | str | None = None
+
+
+class FullUserReturnDataSchema(UserReturnDataSchema):
     session_id: uuid.UUID | str | None = None
 
 
 class MessageResponseSchema(BaseModel):
     message: str
+
+
+class ErrorResponseSchema(BaseModel):
+    detail: str
+
+
+# class UserIDEmailSessionHashSchema(UserVerifySchema):
+#     hashed_password: str
+
+#     class Config:
+#         from_attributes = True

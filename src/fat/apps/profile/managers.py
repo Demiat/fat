@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import Depends
-from sqlalchemy import select, update
+from sqlalchemy import update
 
 from fat.core.db_dependency import DBDependency
 from fat.database.models import User
@@ -29,12 +29,12 @@ class ProfileManager:
 
             await session.commit()
 
-    async def get_user_hashed_password(self, user_id: uuid.UUID | str) -> str:
-        """Возвращает хешированный пароль пользователя."""
-        async with self.db.db_session() as session:
-            query = select(self.user_model.hashed_password).where(
-                self.user_model.id == user_id)
+    # async def get_user_hashed_password(self, user_id: uuid.UUID | str) -> str:
+    #     """Возвращает хешированный пароль пользователя."""
+    #     async with self.db.db_session() as session:
+    #         query = select(self.user_model.hashed_password).where(
+    #             self.user_model.id == user_id)
 
-            result = await session.execute(query)
+    #         result = await session.execute(query)
 
-            return result.scalar()
+    #         return result.scalar()

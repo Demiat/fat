@@ -12,9 +12,11 @@ from starlette.responses import JSONResponse
 from fat.apps.auth.handlers import AuthHandler
 from fat.apps.auth.managers import UserManager
 from fat.apps.auth.schemas import (
-    AuthUserSchema, UserReturnDataSchema, CreateUserSchema, UserVerifySchema)
+    AuthUserSchema, UserReturnDataSchema, CreateUserSchema
+)
 from fat.apps.auth.tasks import send_confirmation_email
 from fat.core.settings import settings
+from fat.database.models import User
 
 BAD_TOKEN = "Неверный или просроченный токен!"
 
@@ -93,7 +95,7 @@ class UserService:
 
         return response
 
-    async def logout_user(self, user: UserVerifySchema) -> JSONResponse:
+    async def logout_user(self, user: User) -> JSONResponse:
         """Отзывает access токен."""
         await self.manager.revoke_access_token(
             user_id=user.id, session_id=user.session_id

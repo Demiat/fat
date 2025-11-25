@@ -2,9 +2,9 @@ from fastapi import Depends
 from starlette.responses import JSONResponse
 
 from fat.apps.auth.handlers import AuthHandler
-from fat.apps.auth.schemas import UserVerifySchema
 from fat.apps.profile.managers import ProfileManager
 from fat.apps.profile.schemas import ChangeEmailSchema, ChangePasswordSchema
+from fat.database.models import User
 
 
 class ProfileService:
@@ -24,7 +24,7 @@ class ProfileService:
     async def change_email(
             self,
             data: ChangeEmailSchema,
-            user: UserVerifySchema) -> None:
+            user: User) -> None:
         """Обновляет адрес электронной почты пользователя."""
         return await self.manager.update_user_fields(
             user_id=user.id, email=data.new_email
@@ -33,16 +33,12 @@ class ProfileService:
     async def change_password(
             self,
             data: ChangePasswordSchema,
-            user: UserVerifySchema) -> None | JSONResponse:
+            user: User) -> None | JSONResponse:
         """Изменяет пароль пользователя после проверки старого значения."""
-        # Берем хэш пароля из базы
-        current_password_hash = await self.manager.get_user_hashed_password(
-            user_id=user.id
-        )
         # Проверяем старый пароль
         if await self.handler.verify_password(
             raw_password=data.old_password,
-            hashed_password=current_password_hash
+            hashed_password=user.hashed_password
         ):
             # Получаем хэш по новому паролю
             hashed_password = await self.handler.get_password_hash(
@@ -55,4 +51,4 @@ class ProfileService:
             )
             return None
 
-        return JSONResponse({"error": "Invalid password"}, status_code=401)
+        return JSONResponse({"detail": "Invalid password"}, status_code=401)

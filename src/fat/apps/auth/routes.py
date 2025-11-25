@@ -6,10 +6,12 @@ from starlette.responses import JSONResponse
 
 from fat.apps.auth.schemas import (
     AuthUserSchema, UserReturnDataSchema,
-    UserVerifySchema, MessageResponseSchema
+    FullUserReturnDataSchema, MessageResponseSchema,
+    ErrorResponseSchema
 )
 from fat.apps.auth.services import UserService
 from fat.apps.auth.depends import get_current_user
+from fat.database.models import User
 
 # tags для группировки маршрутов в документации
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
@@ -45,7 +47,8 @@ async def confirm_registration(
 @auth_router.post(
     path="/login",
     status_code=status.HTTP_200_OK,
-    response_model=MessageResponseSchema
+    response_model=MessageResponseSchema,
+    responses={401: {"model": ErrorResponseSchema}},
 )
 async def login(
     user: AuthUserSchema, service: UserService = Depends(UserService)
@@ -60,7 +63,7 @@ async def login(
     response_model=MessageResponseSchema
 )
 async def logout(
-    user: Annotated[UserVerifySchema, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
     service: UserService = Depends(UserService),
 ) -> JSONResponse:
     """Выход пользователя: отзыв access токена."""
@@ -70,10 +73,11 @@ async def logout(
 @auth_router.get(
     path="/get-user",
     status_code=status.HTTP_200_OK,
-    response_model=UserVerifySchema
+    response_model=FullUserReturnDataSchema,
+    responses={401: {"model": ErrorResponseSchema}},
 )
 async def get_auth_user(
-    user: Annotated[UserVerifySchema, Depends(get_current_user)]
-) -> UserVerifySchema:
+    user: Annotated[User, Depends(get_current_user)]
+) -> User:
     """Получить информацию о пользователе."""
     return user

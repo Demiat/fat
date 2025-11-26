@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 
-from .core.settings import settings
+# from .core.settings import settings
 from fat.apps import apps_router
 
 app = FastAPI()
@@ -15,4 +15,4 @@ def start():
 
 @app.get("/")
 async def index():
-    return {"settings": settings.db_settings.db_url}
+    return {"message": "Hello World"}

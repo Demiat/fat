@@ -58,6 +58,8 @@ markers = [
     "integration: Integration tests for application layer",
     "e2e: End-to-end tests for API endpoints",
     "slow: Tests that take more than 5 seconds",
+    "api: API contract tests",
+    "smoke: Basic smoke tests",
     "redis: Tests that require Redis",
     "db: Tests that require database"
 ]
